@@ -14,6 +14,10 @@ import org.apache.hadoop.util.GenericOptionsParser;
 
 public class BigDataTest {
 
+	/*
+	 * This first MAPPER read the data file by filtering it keeping only the solver
+	 * column and the respective time
+	 */
 	static class MyMapper extends Mapper<LongWritable, Text, Text, Text> {
 
 		boolean firstLine = true;
@@ -43,6 +47,14 @@ public class BigDataTest {
 		}
 	}
 
+	/*
+	 * This REDUCER organize the data concatenating the times of each solver in a
+	 * single row. The output seems like this:
+	 * 
+	 * solver1 time1 time2 time3 time4 .... 
+	 * solver2 time1 time2 time3 time4 ....
+	 * solver3 time1 time2 time3 time4 ....
+	 */
 	static class MyReduce extends Reducer<Text, Text, Text, Text> {
 
 		@Override
@@ -59,6 +71,20 @@ public class BigDataTest {
 		}
 	}
 
+	/*
+	 * This MAPPER format the output of the preceding reducer by adding a custom key
+	 * stating from 0 in a tuple that same like:
+	 * 
+	 * 0	solver1 
+	 * 1	solver1&time1 
+	 * 2	solver1&time2 
+	 * 3	solver1&time3 
+	 * ... 
+	 * 0	solver2 
+	 * 1	solver2&time1 
+	 * 2	solver2&time2 
+	 * 3	solver2&time3 ...
+	 */
 	static class MapperTable extends Mapper<Text, Text, LongWritable, Text> {
 
 		@Override
@@ -67,8 +93,6 @@ public class BigDataTest {
 
 			String[] splittedTimes = value.toString().split(" ");
 			String solver = new String(key.toString());
-
-			// String[] splittedTimes = splittedRow[1].toString().split("#");
 
 			context.write(new LongWritable(0), new Text(solver));
 
@@ -79,6 +103,10 @@ public class BigDataTest {
 		}
 	}
 
+	/*
+	 * This Reducer organize the result in a tabular way, concatenating the times of
+	 * the solvers
+	 */
 	static class ReducerTable extends Reducer<LongWritable, Text, Text, Text> {
 
 		boolean solvers = true;
@@ -106,14 +134,6 @@ public class BigDataTest {
 			}
 
 			context.write(new Text(key + ""), new Text(timeLine.toString()));
-
-			// int count = 0;
-			//
-			// for (Text text : arg1) {
-			// String s = new String(text + "\t" + count);
-			// count++;
-			// arg2.write(arg0, new Text(s.toString()));
-			// }
 		}
 	}
 
